@@ -1,6 +1,6 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { Amplify } from "aws-amplify";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import './App.css';
 import awsExports from "./aws-exports";
 Amplify.configure(awsExports)
@@ -53,14 +53,38 @@ Auth.configure({
 });
 */
 
+
+
+/*
+*/
+
+
 function App() {
-  const { isAuthenticated } = useAuth0();
+  const [claims, setClaims] = useState(null)
+  const { isAuthenticated, user, getIdTokenClaims } = useAuth0();
+
+  useEffect(() => {
+    async function getAuth0IdToken() {
+      const claims = await getIdTokenClaims();
+      if (claims) {
+        // @ts-ignore
+        setClaims(claims)
+      }
+    }
+
+    getAuth0IdToken()
+
+  })
 
   if (!isAuthenticated) return <div className="App"><LoginButton /></div>
 
   return (
     <div className="App">
       <Profile />
+      <code>
+        <pre>{JSON.stringify(user, null, 2)}</pre>
+        <pre>{JSON.stringify(claims, null, 2)}</pre>
+      </code>
       <LogoutButton />
     </div>
   );
