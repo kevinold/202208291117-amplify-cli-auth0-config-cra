@@ -1,5 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { Amplify } from "aws-amplify";
+import { Amplify, Auth } from "aws-amplify";
+import jwt_decode from "jwt-decode";
+ 
 import React, { useEffect, useState } from "react";
 import './App.css';
 import awsExports from "./aws-exports";
@@ -38,27 +40,6 @@ const Profile = () => {
   );
 };
 
-/*
-// auth0 configuration, more info in: https://auth0.com/docs/libraries/auth0js/v9#available-parameters
-Auth.configure({
-    auth0: {
-        domain: 'your auth0 domain', 
-        clientID: 'your client id',
-        redirectUri: 'your call back url',
-        audience: 'https://your_domain/userinfo',
-        responseType: 'token id_token', // for now we only support implicit grant flow
-        scope: 'openid profile email', // the scope used by your app
-        returnTo: 'your sign out url'
-    }
-});
-*/
-
-
-
-/*
-*/
-
-
 function App() {
   const [claims, setClaims] = useState(null)
   const { isAuthenticated, user, getIdTokenClaims } = useAuth0();
@@ -72,9 +53,33 @@ function App() {
       }
     }
 
-    getAuth0IdToken()
+    async function federatedSignIntoCognito() {
+      // @ts-ignore
+      const { email } = user
+      // @ts-ignore
+      const idToken = claims.__raw
+      // @ts-ignore
+      const { exp } = jwt_decode(idToken);
 
-  })
+      await Auth.federatedSignIn(
+          "dev-kevold-amz.us.auth0.com",
+          {
+              token: idToken, // The id token from Auth0
+              expires_at: exp * 1000 // the expiration timestamp
+          },
+          // @ts-ignore
+          { 
+              email, // Optional, the email address
+          } 
+      )
+    }
+
+    getAuth0IdToken()
+    if (claims) {
+      federatedSignIntoCognito()
+    }
+
+  }, [claims, user, getIdTokenClaims])
 
   if (!isAuthenticated) return <div className="App"><LoginButton /></div>
 
