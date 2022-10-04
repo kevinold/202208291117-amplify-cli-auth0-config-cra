@@ -2,11 +2,17 @@ import { Amplify, API, Auth, Hub } from 'aws-amplify';
 import React, { useEffect, useState } from "react";
 import './App.css';
 import awsconfig from './aws-exports';
+import { createTodo } from "./graphql/mutations";
 import { listTodos } from "./graphql/queries";
 
-Amplify.configure(awsconfig);
 
-/*
+Amplify.configure(awsconfig)
+//Amplify.configure({
+  // graphql_headers: async () => ({
+  //   Authorization: await Auth.currentAuthenticatedUser().signInUserSession.idToken.jwtToken
+  // }),
+//  ...awsconfig});
+
 async function onCreate(user) {
   await API.graphql({
     authMode: "OPENID_CONNECT",
@@ -20,6 +26,7 @@ async function onCreate(user) {
   });
 }
 
+/*
 async function onDelete(id) {
   await API.graphql({
     authMode: "OPENID_CONNECT",
@@ -70,6 +77,7 @@ function App() {
   function getUser() {
     return Auth.currentAuthenticatedUser()
       .then(userData => userData)
+      //.then(userData => Cache.setItem('federatedInfo', { token: userData.signInUserSession.idToken.jwtToken }))
       .catch(() => console.log('Not signed in'));
   }
 
@@ -77,12 +85,16 @@ function App() {
     return <button onClick={() => Auth.federatedSignIn({customProvider: "Auth0"})}>Sign via Auth0</button>
   }
 
+  console.log('user', user)
   return (
     <div>
       <div>
         <button onClick={() => Auth.signOut()}>Sign Out</button>
       </div>
       <div>User: {user.username} </div>
+      <div>
+        <button onClick={() => onCreate(user)}>Create Todo</button>
+      </div>
       <div>
       <ul>
         {todos && todos.map((t, i) => <li key={i}>{t.name}</li>)}
