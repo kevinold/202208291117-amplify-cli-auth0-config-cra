@@ -24,5 +24,27 @@
         ]
       }
     }
+  },
+  "api": {
+    "202208291117amplifyc": {
+      "service": "AppSync",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [],
+      "output": {
+        "authConfig": {
+          "defaultAuthentication": {
+            "authenticationType": "OPENID_CONNECT",
+            "openIDConnectConfig": {
+              "name": "Auth0",
+              "issuerUrl": "https://dev-kevold-amz.us.auth0.com/",
+              "clientId": "bSdJVwMcFJEZtN1UXK5ChmHL3UTqjCP3",
+              "authTTL": "30000",
+              "iatTTL": "30000"
+            }
+          },
+          "additionalAuthenticationProviders": []
+        }
+      }
+    }
   }
 }
