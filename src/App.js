@@ -1,4 +1,4 @@
-import { Amplify, API, Auth, Hub } from "aws-amplify";
+import { Amplify, API, Auth, Cache, Hub } from "aws-amplify";
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import awsconfig from "./aws-exports";
@@ -36,7 +36,7 @@ function App() {
     const { data } = await API.graphql(
       {
         query: listTodos,
-        //authMode: "OPENID_CONNECT",
+        authMode: "OPENID_CONNECT",
       },
       // @ts-ignore
       additionalHeaders
@@ -48,11 +48,12 @@ function App() {
   async function onCreateTodo(user) {
     await API.graphql(
       {
+        authMode: "OPENID_CONNECT",
         query: createTodo,
         variables: {
           input: {
-            name: `New Todo ${user.username} - ${Date()}`,
-            description: `${user.username} - ${Date()}\n`,
+            name: `New Todo ${user.email} - ${Date()}`,
+            description: `${user.email} - ${Date()}\n`,
           },
         },
       },
@@ -81,6 +82,7 @@ function App() {
 
     getUser()
       .then((userData) => setUser(userData))
+      .then(() => getSession())
       .then(() => getTodos());
   }, []);
 
@@ -91,6 +93,16 @@ function App() {
         //.then(userData => Cache.setItem('federatedInfo', { token: userData.signInUserSession.idToken.jwtToken }))
         .catch(() => console.log("Not signed in"))
     );
+  }
+
+  function getSession() {
+    return Auth.currentSession()
+      .then((sessionData) => sessionData)
+      .then((sessionData) => console.log("session", sessionData))
+      .then((sessionData) =>
+        Cache.setItem("federatedInfo", { token: sessionData.idToken.jwtToken })
+      )
+      .catch(() => console.log("Not signed in"));
   }
 
   if (!user) {
@@ -109,7 +121,7 @@ function App() {
       </div>
       <div>User: {user.username} </div>
       <div>
-        <button onClick={() => onCreateTodo()}>Create Todo</button>
+        <button onClick={() => onCreateTodo(user)}>Create Todo</button>
       </div>
       <div>
         <ul>{todos && todos.map((t, i) => <li key={i}>{t.name}</li>)}</ul>
