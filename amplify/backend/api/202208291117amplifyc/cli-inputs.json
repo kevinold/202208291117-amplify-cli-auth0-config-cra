@@ -10,6 +10,12 @@
       "openIDClientID": "bSdJVwMcFJEZtN1UXK5ChmHL3UTqjCP3",
       "openIDAuthTTL": "350000",
       "openIDIatTTL": "350000"
-    }
+    },
+    "additionalAuthTypes": [
+      {
+        "mode": "AMAZON_COGNITO_USER_POOLS",
+        "cognitoUserPoolId": "auth202208291117amplifyc0b27aef9"
+      }
+    ]
   }
 }
