@@ -1,30 +1,11 @@
-import { Amplify, API, Auth, Hub } from 'aws-amplify';
+import { Amplify, API, Auth, Hub } from "aws-amplify";
 import React, { useEffect, useState } from "react";
-import './App.css';
-import awsconfig from './aws-exports';
+import "./App.css";
+import awsconfig from "./aws-exports";
 import { createTodo } from "./graphql/mutations";
 import { listTodos } from "./graphql/queries";
 
-
-Amplify.configure(awsconfig)
-//Amplify.configure({
-  // graphql_headers: async () => ({
-  //   Authorization: await Auth.currentAuthenticatedUser().signInUserSession.idToken.jwtToken
-  // }),
-//  ...awsconfig});
-
-async function onCreate(user) {
-  await API.graphql({
-    authMode: "OPENID_CONNECT",
-    query: createTodo,
-    variables: {
-      input: {
-        name: `New Todo ${user.username} - ${Date()}`,
-        description: `${user.username} - ${Date()}\n`,
-      },
-    },
-  });
-}
+Amplify.configure(awsconfig);
 
 /*
 async function onDelete(id) {
@@ -40,52 +21,87 @@ async function onDelete(id) {
 }
 */
 
-async function onQuery(setTodos) {
-  const { data } = await API.graphql({
-    query: listTodos,
-    authMode: "OPENID_CONNECT"
-  });
-
-  setTodos(data.listTodos.items);
-}
-
 function App() {
   const [user, setUser] = useState(null);
   const [todos, setTodos] = useState([]);
 
+  let additionalHeaders = user
+    ? {
+        // @ts-ignore
+        Authorization: user.signInUserSession.idToken.jwtToken,
+      }
+    : {};
+
+  async function getTodos() {
+    const { data } = await API.graphql(
+      {
+        query: listTodos,
+        //authMode: "OPENID_CONNECT",
+      },
+      // @ts-ignore
+      additionalHeaders
+    );
+
+    setTodos(data.listTodos.items);
+  }
+
+  async function onCreateTodo(user) {
+    await API.graphql(
+      {
+        query: createTodo,
+        variables: {
+          input: {
+            name: `New Todo ${user.username} - ${Date()}`,
+            description: `${user.username} - ${Date()}\n`,
+          },
+        },
+      },
+      // @ts-ignore
+      additionalHeaders
+    );
+  }
+
   useEffect(() => {
-    Hub.listen('auth', ({ payload: { event, data } }) => {
+    Hub.listen("auth", ({ payload: { event, data } }) => {
       switch (event) {
-        case 'signIn':
+        case "signIn":
           //console.log(event)
           //console.log(data)
-          getUser().then(userData => setUser(userData));
+          getUser().then((userData) => setUser(userData));
           break;
-        case 'signOut':
+        case "signOut":
           setUser(null);
           break;
-        case 'signIn_failure':
+        case "signIn_failure":
           //console.log('Sign in failure', data);
           break;
         default:
       }
     });
 
-    getUser().then(userData => setUser(userData)).then(() => onQuery(setTodos));
+    getUser()
+      .then((userData) => setUser(userData))
+      .then(() => getTodos());
   }, []);
 
   function getUser() {
-    return Auth.currentAuthenticatedUser()
-      .then(userData => userData)
-      //.then(userData => Cache.setItem('federatedInfo', { token: userData.signInUserSession.idToken.jwtToken }))
-      .catch(() => console.log('Not signed in'));
+    return (
+      Auth.currentAuthenticatedUser()
+        .then((userData) => userData)
+        //.then(userData => Cache.setItem('federatedInfo', { token: userData.signInUserSession.idToken.jwtToken }))
+        .catch(() => console.log("Not signed in"))
+    );
   }
 
   if (!user) {
-    return <button onClick={() => Auth.federatedSignIn({customProvider: "Auth0"})}>Sign via Auth0</button>
+    return (
+      <button onClick={() => Auth.federatedSignIn({ customProvider: "Auth0" })}>
+        Sign via Auth0
+      </button>
+    );
   }
 
-  console.log('user', user)
+  console.log("user", user);
   return (
     <div>
       <div>
@@ -93,12 +109,10 @@ function App() {
       </div>
       <div>User: {user.username} </div>
       <div>
-        <button onClick={() => onCreate(user)}>Create Todo</button>
+        <button onClick={() => onCreateTodo()}>Create Todo</button>
       </div>
       <div>
-      <ul>
-        {todos && todos.map((t, i) => <li key={i}>{t.name}</li>)}
-      </ul>
+        <ul>{todos && todos.map((t, i) => <li key={i}>{t.name}</li>)}</ul>
       </div>
     </div>
   );
