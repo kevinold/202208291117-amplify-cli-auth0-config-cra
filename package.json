@@ -25,6 +25,9 @@
       "react-app/jest"
     ]
   },
+  "prettier": {
+    "trailingComma": "es5"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
