@@ -23,12 +23,13 @@ async function onDelete(id) {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState({});
   const [todos, setTodos] = useState([]);
 
-  let additionalHeaders = user
+  let additionalHeaders = session
     ? {
         // @ts-ignore
-        Authorization: user.signInUserSession.idToken.jwtToken,
+        //Authorization: session.idToken.jwtToken,
       }
     : {};
 
@@ -36,7 +37,7 @@ function App() {
     const { data } = await API.graphql(
       {
         query: listTodos,
-        authMode: "OPENID_CONNECT",
+        //authMode: "OPENID_CONNECT",
       },
       // @ts-ignore
       additionalHeaders
@@ -46,9 +47,10 @@ function App() {
   }
 
   async function onCreateTodo(user) {
+    console.log("Cache federatedInfo", Cache.getItem("federatedInfo"));
     await API.graphql(
       {
-        authMode: "OPENID_CONNECT",
+        //authMode: "OPENID_CONNECT",
         query: createTodo,
         variables: {
           input: {
@@ -66,45 +68,61 @@ function App() {
     Hub.listen("auth", ({ payload: { event, data } }) => {
       switch (event) {
         case "signIn":
-          //console.log(event)
-          //console.log(data)
-          getUser().then((userData) => setUser(userData));
+          console.log("Hub: Sign in");
+          console.log(event);
+          console.log(data);
+          getUser().then((userData) => {
+            console.log("user", userData);
+            setUser(userData);
+          });
+          // getSession()
+          //   .then((sessionData) => {
+          //     Cache.setItem("federatedInfo", {
+          //       // @ts-ignore
+          //       token: sessionData.idToken.jwtToken,
+          //     });
+          //     return sessionData;
+          //   })
+          //   // @ts-ignore
+          //   .then((sessionData) => setSession(sessionData));
           break;
         case "signOut":
+          console.log("Hub: Sign out");
           setUser(null);
           break;
         case "signIn_failure":
-          //console.log('Sign in failure', data);
+          console.log("Hub: Sign in failure", data);
           break;
         default:
       }
     });
 
-    getUser()
-      .then((userData) => setUser(userData))
-      .then(() => getSession())
-      .then(() => getTodos());
+    // getUser()
+    //   .then((userData) => setUser(userData))
+    //   .then(() => getSession())
+    //   .then(() => getTodos());
   }, []);
 
   function getUser() {
-    return (
-      Auth.currentAuthenticatedUser()
-        .then((userData) => userData)
-        //.then(userData => Cache.setItem('federatedInfo', { token: userData.signInUserSession.idToken.jwtToken }))
-        .catch(() => console.log("Not signed in"))
-    );
+    return Auth.currentAuthenticatedUser()
+      .then((userData) => userData)
+      .catch(() => console.log("Not signed in user"));
   }
 
   function getSession() {
-    return Auth.currentSession()
-      .then((sessionData) => sessionData)
-      .then((sessionData) => console.log("session", sessionData))
-      .then((sessionData) =>
-        Cache.setItem("federatedInfo", { token: sessionData.idToken.jwtToken })
-      )
-      .catch(() => console.log("Not signed in"));
+    return (
+      Auth.currentSession()
+        .then((sessionData) => sessionData)
+        .then((sessionData) => console.log("session", sessionData))
+        // .then((sessionData) =>
+        //   // @ts-ignore
+        //   Cache.setItem("federatedInfo", { token: sessionData.idToken.jwtToken })
+        // )
+        .catch(() => console.log("Not signed in session"))
+    );
   }
 
+  console.log("user", user);
   if (!user) {
     return (
       <button onClick={() => Auth.federatedSignIn({ customProvider: "Auth0" })}>
@@ -113,7 +131,6 @@ function App() {
     );
   }
 
-  console.log("user", user);
   return (
     <div>
       <div>
