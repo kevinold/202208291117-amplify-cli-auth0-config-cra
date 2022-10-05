@@ -34,15 +34,12 @@ function App() {
   //   : {};
 
   async function getTodos() {
-    const { data } = await API.graphql(
-      {
-        query: listTodos,
-        //authMode: "OPENID_CONNECT",
-      }
-      // @ts-ignore
-      //additionalHeaders
-    );
+    const { data } = await API.graphql({
+      query: listTodos,
+      //authMode: "OPENID_CONNECT",
+    });
 
+    console.log("todos", data);
     setTodos(data.listTodos.items);
   }
 
@@ -77,6 +74,9 @@ function App() {
             Cache.setItem("federatedInfo", {
               token: userData.signInUserSession.accessToken.jwtToken,
             });
+            getTodos()
+              .then(() => console.log("todos success"))
+              .catch(() => console.log("error with todos"));
           });
           break;
         case "signOut":
@@ -114,7 +114,9 @@ function App() {
       </div>
       <div>User: {user.username} </div>
       <div>
-        <button onClick={() => onCreateTodo(user)}>Create Todo</button>
+        <button onClick={() => onCreateTodo(user) && getTodos()}>
+          Create Todo
+        </button>
       </div>
       <div>
         <ul>{todos && todos.map((t, i) => <li key={i}>{t.name}</li>)}</ul>
