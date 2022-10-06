@@ -7,20 +7,6 @@ import { listTodos } from "./graphql/queries";
 
 Amplify.configure(awsconfig);
 
-/*
-async function onDelete(id) {
-  await API.graphql({
-    authMode: "OPENID_CONNECT",
-    query: deleteTodo,
-    variables: {
-      input: {
-        id,
-      },
-    },
-  });
-}
-*/
-
 function App() {
   const [user, setUser] = useState(null);
   const [todos, setTodos] = useState([]);
@@ -30,7 +16,7 @@ function App() {
       query: listTodos,
     });
 
-    setTodos(data.listTodos.items);
+    return data;
   }
 
   async function onCreateTodo(user) {
@@ -50,29 +36,26 @@ function App() {
       getUser().then((userData) => {
         setUser(userData);
 
+        // required until amplify-js library is patched to handle this use case
+        // suggested PR: https://github.com/kevinold/amplify-js/pull/1/files
         Cache.setItem("federatedInfo", {
           token: userData.signInUserSession.accessToken.jwtToken,
         });
 
         getTodos()
-          .then(() => console.log("todos success"))
+          .then((data) => setTodos(data.listTodos.items))
           .catch(() => console.log("error with todos"));
       });
 
     Hub.listen("auth", ({ payload: { event, data } }) => {
       switch (event) {
         case "signIn":
-          console.log("Hub: Sign in");
-          console.log(event);
-          console.log(data);
           getUserAndTodos();
           break;
         case "signOut":
-          console.log("Hub: Sign out");
           setUser(null);
           break;
         case "signIn_failure":
-          console.log("Hub: Sign in failure", data);
           break;
         default:
       }
@@ -87,8 +70,6 @@ function App() {
       .catch(() => console.log("Not signed in user"));
   }
 
-  console.log("user", user);
-  console.log("federatedInfo", Cache.getItem("federatedInfo"));
   if (!user) {
     return (
       <button onClick={() => Auth.federatedSignIn({ customProvider: "Auth0" })}>
