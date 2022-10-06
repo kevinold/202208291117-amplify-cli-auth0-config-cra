@@ -23,61 +23,49 @@ async function onDelete(id) {
 
 function App() {
   const [user, setUser] = useState(null);
-  //const [session, setSession] = useState({});
   const [todos, setTodos] = useState([]);
-
-  // let additionalHeaders = session
-  //   ? {
-  //       // @ts-ignore
-  //       //Authorization: session.idToken.jwtToken,
-  //     }
-  //   : {};
 
   async function getTodos() {
     const { data } = await API.graphql({
       query: listTodos,
-      //authMode: "OPENID_CONNECT",
     });
 
-    console.log("todos", data);
     setTodos(data.listTodos.items);
   }
 
   async function onCreateTodo(user) {
-    console.log("Cache federatedInfo", Cache.getItem("federatedInfo"));
-    await API.graphql(
-      {
-        //authMode: "OPENID_CONNECT",
-        query: createTodo,
-        variables: {
-          input: {
-            name: `New Todo ${user.email} - ${Date()}`,
-            description: `${user.email} - ${Date()}\n`,
-          },
+    await API.graphql({
+      query: createTodo,
+      variables: {
+        input: {
+          name: `New Todo ${user.email} - ${Date()}`,
+          description: `${user.email} - ${Date()}\n`,
         },
-      }
-      // @ts-ignore
-      //additionalHeaders
-    );
+      },
+    });
   }
 
   useEffect(() => {
+    const getUserAndTodos = () =>
+      getUser().then((userData) => {
+        setUser(userData);
+
+        Cache.setItem("federatedInfo", {
+          token: userData.signInUserSession.accessToken.jwtToken,
+        });
+
+        getTodos()
+          .then(() => console.log("todos success"))
+          .catch(() => console.log("error with todos"));
+      });
+
     Hub.listen("auth", ({ payload: { event, data } }) => {
       switch (event) {
         case "signIn":
           console.log("Hub: Sign in");
           console.log(event);
           console.log(data);
-          getUser().then((userData) => {
-            console.log("user - current", userData);
-            setUser(userData);
-            Cache.setItem("federatedInfo", {
-              token: userData.signInUserSession.accessToken.jwtToken,
-            });
-            getTodos()
-              .then(() => console.log("todos success"))
-              .catch(() => console.log("error with todos"));
-          });
+          getUserAndTodos();
           break;
         case "signOut":
           console.log("Hub: Sign out");
@@ -89,6 +77,8 @@ function App() {
         default:
       }
     });
+
+    getUserAndTodos();
   }, []);
 
   function getUser() {
